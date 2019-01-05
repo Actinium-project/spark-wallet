@@ -2,11 +2,15 @@
 set -eo pipefail
 trap 'jobs -p | xargs -r kill' SIGTERM
 
-: ${NETWORK:=testnet}
+export PATH=$PATH:/opt/bin/
+
+gen_banner.sh
+
+: ${NETWORK:=mainnet}
 : ${LIGHTNINGD_OPT:=--log-level=debug}
 : ${BITCOIND_OPT:=-debug=rpc --printtoconsole=0}
 
-[[ "$NETWORK" == "mainnet" ]] && NETWORK=bitcoin
+[[ "$NETWORK" == "mainnet" ]] && NETWORK=actinium
 
 if [ -d /etc/lightning ]; then
   echo -n "Using lightningd directory mounted in /etc/lightning... "
@@ -14,42 +18,44 @@ if [ -d /etc/lightning ]; then
 
 else
 
-  # Setup bitcoind (only needed when we're starting our own lightningd instance)
-  if [ -d /etc/bitcoin ]; then
-    echo -n "Connecting to bitcoind configured in /etc/bitcoin... "
+  # Setup Actinium (only needed when we're starting our own lightningd instance)
+  if [ -d /etc/actinium ]; then
+    echo -n "Connecting to Actiniumd configured in /etc/actinium... "
 
-    RPC_OPT="-datadir=/etc/bitcoin $([[ -z "$BITCOIND_RPCCONNECT" ]] || echo "-rpcconnect=$BITCOIND_RPCCONNECT")"
+    RPC_OPT="-datadir=/etc/actinium $([[ -z "$BITCOIND_RPCCONNECT" ]] || echo "-rpcconnect=$BITCOIND_RPCCONNECT")"
 
   elif [ -n "$BITCOIND_URI" ]; then
     [[ "$BITCOIND_URI" =~ ^[a-z]+:\/+(([^:/]+):([^@/]+))@([^:/]+:[0-9]+)/?$ ]] || \
-      { echo >&2 "ERROR: invalid bitcoind URI: $BITCOIND_URI"; exit 1; }
+      { echo >&2 "ERROR: invalid Actiniumd URI: $BITCOIND_URI"; exit 1; }
 
-    echo -n "Connecting to bitcoind at ${BASH_REMATCH[4]}... "
+    echo -n "Connecting to Actiniumd at ${BASH_REMATCH[4]}... "
 
     RPC_OPT="-rpcconnect=${BASH_REMATCH[4]}"
 
     if [ "${BASH_REMATCH[2]}" != "__cookie__" ]; then
       RPC_OPT="$RPC_OPT -rpcuser=${BASH_REMATCH[2]} -rpcpassword=${BASH_REMATCH[3]}"
     else
-      RPC_OPT="$RPC_OPT -datadir=/tmp/bitcoin"
-      [[ "$NETWORK" == "bitcoin" ]] && NET_PATH=/tmp/bitcoin || NET_PATH=/tmp/bitcoin/$NETWORK
+      RPC_OPT="$RPC_OPT -datadir=/tmp/actinium"
+      [[ "$NETWORK" == "actinium" ]] && NET_PATH=/tmp/actinium || NET_PATH=/tmp/actinium/$NETWORK
       mkdir -p $NET_PATH
       echo "${BASH_REMATCH[1]}" > $NET_PATH/.cookie
     fi
 
   else
-    echo -n "Starting bitcoind... "
+    echo -n "Starting Actiniumd... "
 
-    mkdir -p /data/bitcoin
-    RPC_OPT="-datadir=/data/bitcoin"
+    mkdir -p /data/actinium
+    touch /data/actinium/Actinium.conf
+    gen_wallet_conf.sh > /data/actinium/Actinium.conf
+    RPC_OPT="-datadir=/data/actinium"
 
-    bitcoind -$NETWORK $RPC_OPT $BITCOIND_OPT &
+    Actiniumd $RPC_OPT &
     echo -n "waiting for cookie... "
-    sed --quiet '/^\.cookie$/ q' <(inotifywait -e create,moved_to --format '%f' -qmr /data/bitcoin)
+    # sed --quiet '/^\.cookie$/ q' <(inotifywait -e create,moved_to --format '%f' -qmr /data/actinium)
   fi
 
   echo -n "waiting for RPC... "
-  bitcoin-cli -$NETWORK $RPC_OPT -rpcwait getblockchaininfo > /dev/null
+  Actinium-cli $RPC_OPT -rpcwait getblockchaininfo > /dev/null
   echo "ready."
 
   # Setup lightning
@@ -57,11 +63,14 @@ else
 
   LN_PATH=/data/lightning
   mkdir -p $LN_PATH
+  touch $LN_PATH/conf
+  gen_ln_conf.sh > $LN_PATH/conf
 
-  lnopt=($LIGHTNINGD_OPT --network=$NETWORK --lightning-dir="$LN_PATH" --log-file=debug.log)
+  lnopt=(--conf=$LN_PATH/conf)
   [[ -z "$LN_ALIAS" ]] || lnopt+=(--alias="$LN_ALIAS")
 
-  lightningd "${lnopt[@]}" $(echo "$RPC_OPT" | sed -r 's/(^| )-/\1--bitcoin-/g') > /dev/null &
+  #lightningd "${lnopt[@]}" $(echo "$RPC_OPT" | sed -r 's/(^| )-/\1--actinium-/g') > /dev/null &
+  lightningd --conf=$LN_PATH/conf
 fi
 
 if [ ! -S $LN_PATH/lightning-rpc ]; then
