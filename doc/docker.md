@@ -5,18 +5,13 @@ You can use Docker to setup Spark, an Actinium node and an `acm-lightning` node 
 First you'll have to build a Docker image on your machine. This is done only once.
 
 ```bash
-docker build -t my-acm-lightning-node .
+$ docker build -t my-acm-lightning-node .
 ```
 
 After the build has completed (which can take some time) start your container with:
 
 ```bash
-$ docker run -v ~/.spark-docker:/data -p 9737:9737 \
-             my-acm-lightning-node --login bob:superSecretPass456
-
-docker run -p 9737:9737 -it -e "RPCUSER=myusername" -e "RPCPASSWORD=mypassword" -e "RPCALLOWIP=127.0.0.1" -e "TORENABLED=0" my-acm-lightning-node --login mylnuser:mylnpassword
-
-
+$ docker run -p 9737:9737 -it -e "RPCUSER=myusername" -e "RPCPASSWORD=mypassword" -e "RPCALLOWIP=127.0.0.1" -e "TORENABLED=0" my-acm-lightning-node --login mylnuser:mylnpassword
 ```
 
 You will then be able to access the Spark wallet at `https://localhost:9737`.
