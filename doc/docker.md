@@ -12,7 +12,7 @@ After the build has completed (which can take some time) start your container wi
 
 ```bash
 $ docker run -v ~/.spark-docker:/data -p 9737:9737 \
-             shesek/spark-wallet --login bob:superSecretPass456
+             my-acm-lightning-node --login bob:superSecretPass456
 
 docker run -p 9737:9737 -it -e "RPCUSER=myusername" -e "RPCPASSWORD=mypassword" -e "RPCALLOWIP=127.0.0.1" -e "TORENABLED=0" my-acm-lightning-node --login mylnuser:mylnpassword
 
