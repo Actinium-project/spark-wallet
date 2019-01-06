@@ -1,6 +1,6 @@
 ## Setting up Spark with Docker
 
-You can use Docker To setup Spark, an Actinium node and an `acm-lightning` node all in one go with the following commands:
+You can use Docker to setup Spark, an Actinium node and an `acm-lightning` node all in one go with the following commands:
 
 First you'll have to build a Docker image on your machine. This is done only once.
 
