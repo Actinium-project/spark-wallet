@@ -36,7 +36,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
     $([ -n "$STANDALONE" ] || echo "autoconf automake build-essential libtool libgmp-dev \
                                      libsqlite3-dev python python3 wget zlib1g-dev")
 
-ARG LIGHTNINGD_VERSION=7a86be30f5ecfbf9e0381895de1412b43be00e4e
+ARG LIGHTNINGD_VERSION=f48f5b2b253203f6e64d941f722ec9d4cb2e0bfe
 
 RUN [ -n "$STANDALONE" ] || ( \
     git clone https://github.com/Actinium-project/acm-lightning.git /opt/lightningd \
